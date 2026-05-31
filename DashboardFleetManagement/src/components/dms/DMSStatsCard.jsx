@@ -11,7 +11,7 @@ import { getViolationStats } from '../../utils/dmsApi';
 export default function DMSStatsCard() {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [offline, setOffline] = useState(false);
 
   const fetchStats = async () => {
     try {
@@ -20,13 +20,19 @@ export default function DMSStatsCard() {
       
       if (response.success) {
         setStats(response.stats);
-        setError(null);
+        setOffline(false);
       } else {
-        setError('Gagal mengambil statistik');
+        setOffline(true);
       }
     } catch (err) {
-      setError('Error koneksi ke backend');
       console.error('Error fetching stats:', err);
+      setOffline(true);
+      setStats({
+        total: 0,
+        today_count: 0,
+        by_type: [],
+        by_driver: [],
+      });
     } finally {
       setLoading(false);
     }
@@ -47,14 +53,6 @@ export default function DMSStatsCard() {
             <div className="mt-2 h-8 w-16 animate-pulse bg-cream-200 rounded"></div>
           </div>
         ))}
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
-        ⚠️ {error}
       </div>
     );
   }
@@ -94,15 +92,20 @@ export default function DMSStatsCard() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-semibold text-slate-brand">Statistik Pelanggaran</h3>
-        <button
-          type="button"
-          onClick={fetchStats}
-          disabled={loading}
-          className="inline-flex items-center gap-2 rounded-lg border border-cream-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 transition hover:bg-cream-50 disabled:opacity-50"
-        >
-          <RefreshCw className={`h-3 w-3 ${loading ? 'animate-spin' : ''}`} />
-          Refresh
-        </button>
+        <div className="flex items-center gap-3">
+          {offline && !loading && (
+            <span className="text-xs text-slate-500">Mode offline: backend belum tersambung</span>
+          )}
+          <button
+            type="button"
+            onClick={fetchStats}
+            disabled={loading}
+            className="inline-flex items-center gap-2 rounded-lg border border-cream-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 transition hover:bg-cream-50 disabled:opacity-50"
+          >
+            <RefreshCw className={`h-3 w-3 ${loading ? 'animate-spin' : ''}`} />
+            Refresh
+          </button>
+        </div>
       </div>
       
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">

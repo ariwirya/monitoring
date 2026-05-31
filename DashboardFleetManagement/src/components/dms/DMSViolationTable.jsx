@@ -22,13 +22,13 @@ const VIOLATION_TYPE_OPTIONS = [
 export default function DMSViolationTable() {
   const [violations, setViolations] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
   const [searchName, setSearchName] = useState('');
   const [filterType, setFilterType] = useState('all');
   const [filterDate, setFilterDate] = useState('');
   const [lightboxSrc, setLightboxSrc] = useState(null);
   const [lightboxAlt, setLightboxAlt] = useState('');
   const [lastUpdated, setLastUpdated] = useState(null);
+  const [offline, setOffline] = useState(false);
 
   // Fetch data pelanggaran dari API
   const fetchViolations = async () => {
@@ -45,14 +45,15 @@ export default function DMSViolationTable() {
       
       if (response.success) {
         setViolations(response.data);
-        setError(null);
+        setOffline(false);
         setLastUpdated(new Date());
       } else {
-        setError('Gagal mengambil data pelanggaran');
+        setOffline(true);
       }
     } catch (err) {
-      setError('Error koneksi ke backend API');
       console.error('Error fetching violations:', err);
+      setOffline(true);
+      setViolations([]);
     } finally {
       setLoading(false);
     }
@@ -150,9 +151,9 @@ export default function DMSViolationTable() {
       </div>
 
       {/* Error message */}
-      {error && (
-        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
-          ⚠️ {error}
+      {offline && !loading && (
+        <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
+          Mode offline: backend belum tersambung, tabel menunggu data baru.
         </div>
       )}
 
@@ -262,11 +263,14 @@ export default function DMSViolationTable() {
                       {violation.violation_description || '-'}
                     </td>
                     <td className="px-5 py-4">
-                      {violation.snapshot_path ? (
+                      {violation.snapshot_path || violation.snapshot_url ? (
                         <button
                           type="button"
                           onClick={() => {
-                            const snapshotUrl = getSnapshotUrl(violation.snapshot_path);
+                            const snapshotUrl =
+                              getSnapshotUrl(violation.snapshot_path) ??
+                              violation.snapshot_url ??
+                              null;
                             setLightboxSrc(snapshotUrl);
                             setLightboxAlt(`Bukti ${getViolationTypeLabel(violation.violation_type)} — ${violation.driver_name}`);
                           }}

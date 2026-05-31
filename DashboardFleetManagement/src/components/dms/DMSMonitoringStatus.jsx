@@ -11,15 +11,20 @@ import { getMonitoringStatus } from '../../utils/dmsApi';
 export default function DMSMonitoringStatus() {
   const [status, setStatus] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [offline, setOffline] = useState(false);
 
   const fetchStatus = async () => {
     try {
       const response = await getMonitoringStatus();
       if (response.success && response.data) {
         setStatus(response.data);
+        setOffline(false);
+      } else {
+        setOffline(true);
       }
     } catch (err) {
       console.error('Error fetching monitoring status:', err);
+      setOffline(true);
     } finally {
       setLoading(false);
     }
@@ -146,11 +151,18 @@ export default function DMSMonitoringStatus() {
               )}
             </div>
           )}
+          {offline && (
+            <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-700">
+              Backend belum tersambung. Menampilkan status terakhir yang tersedia.
+            </div>
+          )}
         </div>
       ) : (
         <div className="rounded-xl border border-cream-200 bg-cream-50 p-6 text-center">
           <p className="text-sm text-slate-500">
-            Tidak ada data monitoring. Pastikan edge device sedang berjalan.
+            {offline
+              ? 'Backend belum tersambung. Pastikan server DMS sedang berjalan.'
+              : 'Tidak ada data monitoring. Pastikan edge device sedang berjalan.'}
           </p>
         </div>
       )}

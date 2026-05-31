@@ -11,11 +11,14 @@ const API_BASE_URL = 'http://localhost:3000/api';
  */
 async function fetchAPI(endpoint, options = {}) {
   try {
+    const hasFormDataBody = typeof FormData !== 'undefined' && options.body instanceof FormData;
+    const headers = {
+      ...(hasFormDataBody ? {} : { 'Content-Type': 'application/json' }),
+      ...options.headers,
+    };
+
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-      headers: {
-        'Content-Type': 'application/json',
-        ...options.headers,
-      },
+      headers,
       ...options,
     });
 
@@ -56,6 +59,26 @@ export async function getViolationStats() {
  * @returns {Promise<Object>} - Response dari server
  */
 export async function createViolation(violationData) {
+  if (typeof FormData !== 'undefined' && violationData instanceof FormData) {
+    return fetchAPI('/violations', {
+      method: 'POST',
+      body: violationData,
+    });
+  }
+
+  if (violationData?.snapshotFile instanceof File) {
+    const formData = new FormData();
+    Object.entries(violationData).forEach(([key, value]) => {
+      if (key === 'snapshotFile' || value === undefined || value === null) return;
+      formData.append(key, value);
+    });
+    formData.append('snapshot', violationData.snapshotFile);
+    return fetchAPI('/violations', {
+      method: 'POST',
+      body: formData,
+    });
+  }
+
   return fetchAPI('/violations', {
     method: 'POST',
     body: JSON.stringify(violationData),
@@ -94,6 +117,27 @@ export async function deleteDriver(driverId) {
 }
 
 /**
+ * Mendapatkan detail driver
+ * @param {string|number} driverId - ID driver
+ * @returns {Promise<Object>} - Data driver
+ */
+export async function getDriverById(driverId) {
+  return fetchAPI(`/drivers/${driverId}`);
+}
+
+/**
+ * Mendapatkan riwayat pelanggaran driver
+ * @param {string|number} driverId - ID driver
+ * @param {Object} params - Parameter filter (limit)
+ * @returns {Promise<Object>} - Data pelanggaran driver
+ */
+export async function getDriverViolations(driverId, params = {}) {
+  const queryString = new URLSearchParams(params).toString();
+  const endpoint = `/drivers/${driverId}/violations${queryString ? `?${queryString}` : ''}`;
+  return fetchAPI(endpoint);
+}
+
+/**
  * Mendapatkan status monitoring terbaru
  * @returns {Promise<Object>} - Status monitoring
  */
@@ -122,6 +166,24 @@ export async function getSystemLogs(params = {}) {
   const queryString = new URLSearchParams(params).toString();
   const endpoint = `/logs${queryString ? `?${queryString}` : ''}`;
   return fetchAPI(endpoint);
+}
+
+/**
+ * Mendapatkan detail pelanggaran
+ * @param {string|number} violationId - ID pelanggaran
+ * @returns {Promise<Object>} - Data pelanggaran
+ */
+export async function getViolationById(violationId) {
+  return fetchAPI(`/violations/${violationId}`);
+}
+
+/**
+ * Mendapatkan metadata bukti pelanggaran
+ * @param {string|number} violationId - ID pelanggaran
+ * @returns {Promise<Object>} - Data bukti pelanggaran
+ */
+export async function getViolationEvidence(violationId) {
+  return fetchAPI(`/violations/${violationId}/evidence`);
 }
 
 /**

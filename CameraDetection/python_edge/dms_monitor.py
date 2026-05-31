@@ -261,7 +261,8 @@ def send_violation_to_api(frame, violation_type, duration, driver_name):
             'violation_type': violation_type,
             'timestamp': datetime.now().isoformat(),
             'duration_seconds': duration,
-            'description': f"{violation_type} terdeteksi selama {duration:.2f} detik"
+            'description': f"{violation_type} terdeteksi selama {duration:.2f} detik",
+            'source': 'edge',
         }
         
         # Siapkan file untuk upload

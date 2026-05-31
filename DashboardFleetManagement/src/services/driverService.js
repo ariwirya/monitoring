@@ -2,16 +2,35 @@ import { drivers as initialDrivers } from '../data/mockData';
 import * as dmsApi from '../utils/dmsApi';
 
 const STORAGE_KEY = 'fleet_drivers';
-const USE_API = import.meta.env.VITE_USE_DRIVER_API === 'true';
+const USE_API = import.meta.env.VITE_USE_DRIVER_API !== 'false';
+
+function normalizeDriver(driver) {
+  if (!driver) return driver;
+  return {
+    ...driver,
+    id: driver.id,
+    name: driver.name,
+    vehiclePlate: driver.vehiclePlate ?? driver.license_plate ?? '',
+    license_plate: driver.license_plate ?? driver.vehiclePlate ?? '',
+    photoUrl: driver.photoUrl ?? driver.photo_url ?? '',
+    photo_url: driver.photo_url ?? driver.photoUrl ?? '',
+    faceEncodingPath: driver.faceEncodingPath ?? driver.face_encoding_path ?? '',
+    face_encoding_path: driver.face_encoding_path ?? driver.faceEncodingPath ?? '',
+    alertCount:
+      driver.alertCount ?? driver.violation_count ?? driver.violationCount ?? 0,
+    violation_count:
+      driver.violation_count ?? driver.alertCount ?? driver.violationCount ?? 0,
+  };
+}
 
 function readLocalDrivers() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) return JSON.parse(raw);
+    if (raw) return JSON.parse(raw).map(normalizeDriver);
   } catch {
     /* fallback ke data awal */
   }
-  return [...initialDrivers];
+  return initialDrivers.map(normalizeDriver);
 }
 
 function writeLocalDrivers(drivers) {
@@ -33,7 +52,7 @@ export async function fetchDrivers() {
     try {
       const res = await dmsApi.getDrivers();
       const list = res.data ?? res.drivers ?? res;
-      if (Array.isArray(list)) return list;
+      if (Array.isArray(list)) return list.map(normalizeDriver);
     } catch (err) {
       console.warn('API drivers gagal, fallback localStorage:', err);
     }
@@ -49,7 +68,7 @@ export async function addDriver(payload) {
   if (USE_API) {
     try {
       const res = await dmsApi.createDriver(payload);
-      return res.data ?? res.driver ?? res;
+      return normalizeDriver(res.data ?? res.driver ?? res);
     } catch (err) {
       console.warn('API create driver gagal, fallback localStorage:', err);
     }

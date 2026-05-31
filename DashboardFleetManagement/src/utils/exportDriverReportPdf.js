@@ -37,10 +37,15 @@ export async function exportDriverReportPdf(driver, alerts) {
     doc.text('Tidak ada riwayat peringatan untuk sopir ini.', 14, tableStartY);
   } else {
     const rows = alerts.map((a) => [
-      ALERT_TYPE_LABELS[a.type] ?? a.type,
-      formatDisplayDate(a.date),
-      a.time,
-      a.location,
+      ALERT_TYPE_LABELS[a.violation_type ?? a.type] ?? (a.violation_type ?? a.type),
+      formatDisplayDate(String(a.timestamp ?? a.date ?? '').split('T')[0] || String(a.date ?? '')),
+      a.timestamp && a.timestamp.includes('T')
+        ? new Date(a.timestamp).toLocaleTimeString('id-ID', {
+            hour: '2-digit',
+            minute: '2-digit',
+          })
+        : a.time ?? '-',
+      a.location ?? a.violation_description ?? '-',
     ]);
 
     autoTable(doc, {

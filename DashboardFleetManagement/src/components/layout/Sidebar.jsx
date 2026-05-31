@@ -2,6 +2,7 @@ import {
   LayoutDashboard,
   Users,
   ClipboardList,
+  Camera,
   Truck,
   Bell,
 } from 'lucide-react';
@@ -11,6 +12,7 @@ const ICON_MAP = {
   LayoutDashboard,
   Users,
   ClipboardList,
+  Camera,
 };
 
 export default function Sidebar({ activeTab, onTabChange }) {
@@ -30,7 +32,7 @@ export default function Sidebar({ activeTab, onTabChange }) {
 
       <nav className="flex-1 space-y-1 p-4">
         {NAV_ITEMS.map((item) => {
-          const Icon = ICON_MAP[item.icon];
+          const Icon = ICON_MAP[item.icon] ?? LayoutDashboard;
           const isActive = activeTab === item.id;
           return (
             <button

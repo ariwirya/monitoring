@@ -2,7 +2,8 @@ import { ChevronRight, AlertTriangle, Trash2 } from 'lucide-react';
 import { getAlertsByDriverId } from '../../utils/alertUtils';
 
 export default function DriverCard({ driver, onClick, onDelete }) {
-  const alertCount = getAlertsByDriverId(driver.id).length;
+  const alertCount = driver.alertCount ?? driver.violation_count ?? getAlertsByDriverId(driver.id).length;
+  const driverPhoto = driver.photoUrl || driver.photo_url;
 
   return (
     <div className="group relative flex w-full flex-col overflow-hidden rounded-2xl border border-cream-200 bg-white shadow-sm transition hover:border-slate-brand/30 hover:shadow-md">
@@ -13,7 +14,7 @@ export default function DriverCard({ driver, onClick, onDelete }) {
       >
         <div className="relative aspect-[4/3] overflow-hidden bg-cream-100">
           <img
-            src={driver.photoUrl}
+            src={driverPhoto}
             alt={driver.name}
             className="h-full w-full object-cover object-top transition duration-300 group-hover:scale-105"
           />

@@ -24,6 +24,53 @@ if (!fs.existsSync(SNAPSHOTS_DIR)) {
     fs.mkdirSync(SNAPSHOTS_DIR, { recursive: true });
 }
 
+function normalizeText(value, fallback = null) {
+  if (value === undefined || value === null) return fallback;
+  const text = String(value).trim();
+  return text.length ? text : fallback;
+}
+
+function parseInteger(value, fallback) {
+  const parsed = Number.parseInt(value, 10);
+  return Number.isNaN(parsed) ? fallback : parsed;
+}
+
+function parseFloatValue(value, fallback) {
+  const parsed = Number.parseFloat(value);
+  return Number.isNaN(parsed) ? fallback : parsed;
+}
+
+function runStatement(sql, params = []) {
+  return new Promise((resolve, reject) => {
+    db.run(sql, params, function (err) {
+      if (err) {
+        reject(err);
+        return;
+      }
+      resolve(this);
+    });
+  });
+}
+
+function getTableColumns(tableName) {
+  return new Promise((resolve, reject) => {
+    db.all(`PRAGMA table_info(${tableName})`, (err, rows) => {
+      if (err) {
+        reject(err);
+        return;
+      }
+      resolve(rows.map((row) => row.name));
+    });
+  });
+}
+
+async function ensureColumn(tableName, columnName, definition) {
+  const columns = await getTableColumns(tableName);
+  if (!columns.includes(columnName)) {
+    await runStatement(`ALTER TABLE ${tableName} ADD COLUMN ${definition}`);
+  }
+}
+
 // ============================================
 // INISIALISASI EXPRESS
 // ============================================
@@ -79,73 +126,92 @@ const db = new sqlite3.Database(DB_PATH, (err) => {
     console.error('❌ Error koneksi database:', err.message);
   } else {
     console.log('✅ Terhubung ke database SQLite');
-    initializeDatabase();
+    initializeDatabase().catch((initError) => {
+      console.error('❌ Gagal inisialisasi database:', initError.message);
+    });
   }
 });
 
 // Fungsi inisialisasi tabel database
-function initializeDatabase() {
-  db.serialize(() => {
-    // Tabel drivers
-    db.run(`
-      CREATE TABLE IF NOT EXISTS drivers (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT NOT NULL,
-        license_plate TEXT NOT NULL UNIQUE,
-        face_encoding_path TEXT,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
+async function initializeDatabase() {
+  await runStatement(`
+    CREATE TABLE IF NOT EXISTS drivers (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      license_plate TEXT NOT NULL UNIQUE,
+      photo_url TEXT,
+      face_encoding_path TEXT,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
 
-    // Tabel violations
-    db.run(`
-      CREATE TABLE IF NOT EXISTS violations (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        driver_id INTEGER,
-        driver_name TEXT,
-        violation_type TEXT NOT NULL,
-        violation_description TEXT,
-        snapshot_path TEXT,
-        timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        duration_seconds REAL,
-        severity TEXT DEFAULT 'medium',
-        FOREIGN KEY (driver_id) REFERENCES drivers(id)
-      )
-    `);
+  await runStatement(`
+    CREATE TABLE IF NOT EXISTS violations (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      driver_id INTEGER,
+      driver_name TEXT,
+      violation_type TEXT NOT NULL,
+      violation_description TEXT,
+      snapshot_path TEXT,
+      snapshot_filename TEXT,
+      snapshot_mime_type TEXT,
+      timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      duration_seconds REAL,
+      severity TEXT DEFAULT 'medium',
+      source TEXT DEFAULT 'edge',
+      FOREIGN KEY (driver_id) REFERENCES drivers(id)
+    )
+  `);
 
-    // Tabel system_logs
-    db.run(`
-      CREATE TABLE IF NOT EXISTS system_logs (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        log_type TEXT NOT NULL,
-        message TEXT,
-        timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
+  await runStatement(`
+    CREATE TABLE IF NOT EXISTS system_logs (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      log_type TEXT NOT NULL,
+      message TEXT,
+      timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
 
-    // Tabel monitoring_status
-    db.run(`
-      CREATE TABLE IF NOT EXISTS monitoring_status (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        driver_id INTEGER,
-        driver_name TEXT,
-        current_status TEXT DEFAULT 'inactive',
-        last_violation_type TEXT,
-        last_violation_time TIMESTAMP,
-        camera_status TEXT DEFAULT 'active',
-        last_heartbeat TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (driver_id) REFERENCES drivers(id)
-      )
-    `);
+  await runStatement(`
+    CREATE TABLE IF NOT EXISTS monitoring_status (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      driver_id INTEGER,
+      driver_name TEXT,
+      current_status TEXT DEFAULT 'inactive',
+      last_violation_type TEXT,
+      last_violation_time TIMESTAMP,
+      camera_status TEXT DEFAULT 'active',
+      last_heartbeat TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (driver_id) REFERENCES drivers(id)
+    )
+  `);
 
-    // Buat indeks untuk optimasi
-    db.run(`CREATE INDEX IF NOT EXISTS idx_violations_timestamp ON violations(timestamp DESC)`);
-    db.run(`CREATE INDEX IF NOT EXISTS idx_violations_driver_id ON violations(driver_id)`);
-    db.run(`CREATE INDEX IF NOT EXISTS idx_violations_type ON violations(violation_type)`);
+  await ensureColumn('drivers', 'photo_url', 'photo_url TEXT');
+  await ensureColumn('violations', 'driver_id', 'driver_id INTEGER');
+  await ensureColumn('violations', 'driver_name', 'driver_name TEXT');
+  await ensureColumn('violations', 'violation_type', 'violation_type TEXT');
+  await ensureColumn('violations', 'violation_description', 'violation_description TEXT');
+  await ensureColumn('violations', 'snapshot_path', 'snapshot_path TEXT');
+  await ensureColumn('violations', 'snapshot_filename', 'snapshot_filename TEXT');
+  await ensureColumn('violations', 'snapshot_mime_type', 'snapshot_mime_type TEXT');
+  await ensureColumn('violations', 'timestamp', 'timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP');
+  await ensureColumn('violations', 'duration_seconds', 'duration_seconds REAL');
+  await ensureColumn('violations', 'severity', "severity TEXT DEFAULT 'medium'");
+  await ensureColumn('violations', 'source', "source TEXT DEFAULT 'edge'");
+  await ensureColumn('monitoring_status', 'driver_id', 'driver_id INTEGER');
+  await ensureColumn('monitoring_status', 'driver_name', 'driver_name TEXT');
+  await ensureColumn('monitoring_status', 'current_status', "current_status TEXT DEFAULT 'inactive'");
+  await ensureColumn('monitoring_status', 'last_violation_type', 'last_violation_type TEXT');
+  await ensureColumn('monitoring_status', 'last_violation_time', 'last_violation_time TIMESTAMP');
+  await ensureColumn('monitoring_status', 'camera_status', "camera_status TEXT DEFAULT 'active'");
+  await ensureColumn('monitoring_status', 'last_heartbeat', 'last_heartbeat TIMESTAMP DEFAULT CURRENT_TIMESTAMP');
 
-    console.log('✅ Tabel database berhasil diinisialisasi');
-  });
+  await runStatement(`CREATE INDEX IF NOT EXISTS idx_violations_timestamp ON violations(timestamp DESC)`);
+  await runStatement(`CREATE INDEX IF NOT EXISTS idx_violations_driver_id ON violations(driver_id)`);
+  await runStatement(`CREATE INDEX IF NOT EXISTS idx_violations_type ON violations(violation_type)`);
+
+  console.log('✅ Tabel database berhasil diinisialisasi');
 }
 
 // ============================================
@@ -159,8 +225,18 @@ function initializeDatabase() {
  */
 app.post('/api/violations', upload.single('snapshot'), (req, res) => {
   try {
-    const { driver_name, violation_type, timestamp, duration_seconds, description } = req.body;
-    const snapshot_path = req.file ? `/snapshots/${req.file.filename}` : null;
+    const {
+      driver_id,
+      driver_name,
+      violation_type,
+      timestamp,
+      duration_seconds,
+      description,
+      source,
+    } = req.body;
+    const snapshot_path = req.file
+      ? `/snapshots/${req.file.filename}`
+      : normalizeText(req.body.snapshot_path || req.body.snapshot_url || req.body.evidence_url);
 
     // Log data yang diterima
     console.log('📥 Data pelanggaran diterima:');
@@ -170,10 +246,9 @@ app.post('/api/violations', upload.single('snapshot'), (req, res) => {
     console.log(`   Snapshot: ${snapshot_path}`);
 
     // Insert ke database
-    const query = `
-      INSERT INTO violations (driver_name, violation_type, violation_description, snapshot_path, timestamp, duration_seconds, severity)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
-    `;
+    if (!violation_type) {
+      return res.status(400).json({ error: 'violation_type wajib diisi' });
+    }
 
     // Tentukan severity berdasarkan tipe pelanggaran
     let severity = 'medium';
@@ -183,15 +258,36 @@ app.post('/api/violations', upload.single('snapshot'), (req, res) => {
       severity = 'medium';
     }
 
-    db.run(query, [
-      driver_name || 'Unknown',
-      violation_type,
-      description,
-      snapshot_path,
-      timestamp || new Date().toISOString(),
-      duration_seconds || 0,
-      severity
-    ], function(err) {
+    db.run(
+      `
+      INSERT INTO violations (
+        driver_id,
+        driver_name,
+        violation_type,
+        violation_description,
+        snapshot_path,
+        snapshot_filename,
+        snapshot_mime_type,
+        timestamp,
+        duration_seconds,
+        severity,
+        source
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `,
+      [
+        driver_id ? parseInteger(driver_id, null) : null,
+        driver_name || 'Unknown',
+        violation_type,
+        description || null,
+        snapshot_path,
+        req.file?.filename || null,
+        req.file?.mimetype || null,
+        timestamp || new Date().toISOString(),
+        parseFloatValue(duration_seconds, 0),
+        severity,
+        source || 'edge',
+      ],
+      function(err) {
       if (err) {
         console.error('❌ Error insert pelanggaran:', err.message);
         return res.status(500).json({ error: 'Gagal menyimpan data pelanggaran' });
@@ -206,7 +302,20 @@ app.post('/api/violations', upload.single('snapshot'), (req, res) => {
       res.status(200).json({
         success: true,
         message: 'Data pelanggaran berhasil disimpan',
-        violation_id: this.lastID
+        violation_id: this.lastID,
+        data: {
+          id: this.lastID,
+          driver_id: driver_id ? parseInteger(driver_id, null) : null,
+          driver_name: driver_name || 'Unknown',
+          violation_type,
+          violation_description: description || null,
+          snapshot_path,
+          snapshot_url: snapshot_path ? `http://localhost:${PORT}${snapshot_path}` : null,
+          timestamp: timestamp || new Date().toISOString(),
+          duration_seconds: parseFloatValue(duration_seconds, 0),
+          severity,
+          source: source || 'edge',
+        },
       });
     });
 
@@ -272,6 +381,70 @@ app.get('/api/violations', (req, res) => {
     console.error('❌ Error fetching violations:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
+});
+
+/**
+ * GET /api/violations/:id
+ * Mendapatkan detail satu pelanggaran
+ */
+app.get('/api/violations/:id', (req, res) => {
+  const violationId = parseInteger(req.params.id, null);
+  if (violationId === null) {
+    return res.status(400).json({ error: 'ID pelanggaran tidak valid' });
+  }
+
+  db.get('SELECT * FROM violations WHERE id = ?', [violationId], (err, row) => {
+    if (err) {
+      console.error('❌ Error fetching violation:', err.message);
+      return res.status(500).json({ error: 'Gagal mengambil detail pelanggaran' });
+    }
+
+    if (!row) {
+      return res.status(404).json({ error: 'Pelanggaran tidak ditemukan' });
+    }
+
+    res.status(200).json({
+      success: true,
+      data: {
+        ...row,
+        snapshot_url: row.snapshot_path ? `http://localhost:${PORT}${row.snapshot_path}` : null,
+      },
+    });
+  });
+});
+
+/**
+ * GET /api/violations/:id/evidence
+ * Mendapatkan metadata bukti pelanggaran
+ */
+app.get('/api/violations/:id/evidence', (req, res) => {
+  const violationId = parseInteger(req.params.id, null);
+  if (violationId === null) {
+    return res.status(400).json({ error: 'ID pelanggaran tidak valid' });
+  }
+
+  db.get(
+    'SELECT id, driver_name, violation_type, snapshot_path, snapshot_filename, snapshot_mime_type FROM violations WHERE id = ?',
+    [violationId],
+    (err, row) => {
+      if (err) {
+        console.error('❌ Error fetching evidence:', err.message);
+        return res.status(500).json({ error: 'Gagal mengambil bukti pelanggaran' });
+      }
+
+      if (!row) {
+        return res.status(404).json({ error: 'Bukti pelanggaran tidak ditemukan' });
+      }
+
+      res.status(200).json({
+        success: true,
+        data: {
+          ...row,
+          snapshot_url: row.snapshot_path ? `http://localhost:${PORT}${row.snapshot_path}` : null,
+        },
+      });
+    },
+  );
 });
 
 /**
@@ -344,7 +517,19 @@ app.get('/api/violations/stats', (req, res) => {
  */
 app.get('/api/drivers', (req, res) => {
   try {
-    db.all('SELECT * FROM drivers ORDER BY created_at DESC', (err, rows) => {
+    db.all(
+      `
+        SELECT
+          drivers.*,
+          (
+            SELECT COUNT(*)
+            FROM violations
+            WHERE violations.driver_id = drivers.id
+          ) AS violation_count
+        FROM drivers
+        ORDER BY created_at DESC
+      `,
+      (err, rows) => {
       if (err) {
         console.error('❌ Error fetching drivers:', err.message);
         return res.status(500).json({ error: 'Gagal mengambil data driver' });
@@ -363,23 +548,83 @@ app.get('/api/drivers', (req, res) => {
 });
 
 /**
+ * GET /api/drivers/:id
+ * Mendapatkan detail driver beserta bukti pelanggaran terbarunya
+ */
+app.get('/api/drivers/:id', (req, res) => {
+  const driverId = parseInteger(req.params.id, null);
+  if (driverId === null) {
+    return res.status(400).json({ error: 'ID driver tidak valid' });
+  }
+
+  db.get('SELECT * FROM drivers WHERE id = ?', [driverId], (err, driverRow) => {
+    if (err) {
+      console.error('❌ Error fetching driver:', err.message);
+      return res.status(500).json({ error: 'Gagal mengambil data driver' });
+    }
+
+    if (!driverRow) {
+      return res.status(404).json({ error: 'Driver tidak ditemukan' });
+    }
+
+    db.all(
+      `
+        SELECT *
+        FROM violations
+        WHERE driver_id = ?
+        ORDER BY timestamp DESC
+      `,
+      [driverId],
+      (violationErr, violations) => {
+        if (violationErr) {
+          console.error('❌ Error fetching driver violations:', violationErr.message);
+          return res.status(500).json({ error: 'Gagal mengambil riwayat pelanggaran driver' });
+        }
+
+        res.status(200).json({
+          success: true,
+          data: {
+            ...driverRow,
+            photo_url: driverRow.photo_url || null,
+            violations: violations.map((violation) => ({
+              ...violation,
+              snapshot_url: violation.snapshot_path ? `http://localhost:${PORT}${violation.snapshot_path}` : null,
+            })),
+          },
+        });
+      },
+    );
+  });
+});
+
+/**
  * POST /api/drivers
  * Menambahkan driver baru
  */
 app.post('/api/drivers', (req, res) => {
   try {
-    const { name, license_plate, face_encoding_path } = req.body;
+    const {
+      name,
+      license_plate,
+      vehiclePlate,
+      photo_url,
+      photoUrl,
+      face_encoding_path,
+    } = req.body;
+    const normalizedName = normalizeText(name);
+    const normalizedPlate = normalizeText(license_plate || vehiclePlate);
+    const normalizedPhoto = normalizeText(photo_url || photoUrl);
 
-    if (!name || !license_plate) {
+    if (!normalizedName || !normalizedPlate) {
       return res.status(400).json({ error: 'Nama dan license plate wajib diisi' });
     }
 
     const query = `
-      INSERT INTO drivers (name, license_plate, face_encoding_path)
-      VALUES (?, ?, ?)
+      INSERT INTO drivers (name, license_plate, photo_url, face_encoding_path, updated_at)
+      VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
     `;
 
-    db.run(query, [name, license_plate, face_encoding_path], function(err) {
+    db.run(query, [normalizedName, normalizedPlate, normalizedPhoto, normalizeText(face_encoding_path)], function(err) {
       if (err) {
         if (err.message.includes('UNIQUE constraint')) {
           return res.status(400).json({ error: 'License plate sudah terdaftar' });
@@ -391,7 +636,14 @@ app.post('/api/drivers', (req, res) => {
       res.status(201).json({
         success: true,
         message: 'Driver berhasil ditambahkan',
-        driver_id: this.lastID
+        driver_id: this.lastID,
+        data: {
+          id: this.lastID,
+          name: normalizedName,
+          license_plate: normalizedPlate,
+          photo_url: normalizedPhoto,
+          face_encoding_path: normalizeText(face_encoding_path),
+        },
       });
     });
 
@@ -399,6 +651,73 @@ app.post('/api/drivers', (req, res) => {
     console.error('❌ Error adding driver:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
+});
+
+/**
+ * DELETE /api/drivers/:id
+ * Menghapus driver berdasarkan ID
+ */
+app.delete('/api/drivers/:id', (req, res) => {
+  const driverId = parseInteger(req.params.id, null);
+  if (driverId === null) {
+    return res.status(400).json({ error: 'ID driver tidak valid' });
+  }
+
+  db.run('DELETE FROM drivers WHERE id = ?', [driverId], function(err) {
+    if (err) {
+      console.error('❌ Error delete driver:', err.message);
+      return res.status(500).json({ error: 'Gagal menghapus driver' });
+    }
+
+    if (this.changes === 0) {
+      return res.status(404).json({ error: 'Driver tidak ditemukan' });
+    }
+
+    logSystemEvent('driver_deleted', `Driver ID ${driverId} dihapus dari sistem`);
+
+    res.status(200).json({
+      success: true,
+      message: 'Driver berhasil dihapus',
+    });
+  });
+});
+
+/**
+ * GET /api/drivers/:id/violations
+ * Mendapatkan riwayat pelanggaran per driver
+ */
+app.get('/api/drivers/:id/violations', (req, res) => {
+  const driverId = parseInteger(req.params.id, null);
+  if (driverId === null) {
+    return res.status(400).json({ error: 'ID driver tidak valid' });
+  }
+
+  const { limit = 100 } = req.query;
+
+  db.all(
+    `
+      SELECT *
+      FROM violations
+      WHERE driver_id = ?
+      ORDER BY timestamp DESC
+      LIMIT ?
+    `,
+    [driverId, parseInteger(limit, 100)],
+    (err, rows) => {
+      if (err) {
+        console.error('❌ Error fetching driver violations:', err.message);
+        return res.status(500).json({ error: 'Gagal mengambil riwayat pelanggaran driver' });
+      }
+
+      res.status(200).json({
+        success: true,
+        data: rows.map((row) => ({
+          ...row,
+          snapshot_url: row.snapshot_path ? `http://localhost:${PORT}${row.snapshot_path}` : null,
+        })),
+      });
+    },
+  );
 });
 
 /**
