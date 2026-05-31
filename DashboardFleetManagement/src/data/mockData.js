@@ -1,0 +1,330 @@
+/**
+ * Mock data — siap diganti dengan respons API.
+ * Tipe peringatan: microsleep | smoking | solar_clarity
+ */
+
+export const ALERT_TYPES = {
+  MICROSLEEP: 'microsleep',
+  SMOKING: 'smoking',
+  SOLAR_CLARITY: 'solar_clarity',
+};
+
+export const ALERT_TYPE_LABELS = {
+  [ALERT_TYPES.MICROSLEEP]: 'Microsleep',
+  [ALERT_TYPES.SMOKING]: 'Merokok',
+  [ALERT_TYPES.SOLAR_CLARITY]: 'Kejernihan Solar',
+};
+
+/** URL gambar dummy — ganti dengan path/URL produksi Anda */
+const DRIVER_PHOTOS = {
+  /** Foto formal, postur tegak menghadap kamera */
+  budi: 'https://images.unsplash.com/photo-1560250097-0b93528c311a?w=400&h=500&fit=crop&crop=face',
+  andi: 'https://images.pexels.com/photos/2379004/pexels-photo-2379004.jpeg?auto=compress&cs=tinysrgb&w=400&h=500&fit=crop',
+  rina: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=400&h=500&fit=crop&crop=face',
+  dedi: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=400&h=500&fit=crop&crop=face',
+  siti: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=400&h=500&fit=crop&crop=face',
+  hendra: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=400&h=500&fit=crop&crop=face',
+};
+
+/** Bukti microsleep: sopir mengantuk / tertidur di dalam kendaraan */
+const EVIDENCE_MICROSLEEP = [
+  'https://images.pexels.com/photos/4439444/pexels-photo-4439444.jpeg?auto=compress&cs=tinysrgb&w=640&h=360&fit=crop',
+  'https://images.pexels.com/photos/3802510/pexels-photo-3802510.jpeg?auto=compress&cs=tinysrgb&w=640&h=360&fit=crop',
+  'https://images.pexels.com/photos/5265609/pexels-photo-5265609.jpeg?auto=compress&cs=tinysrgb&w=640&h=360&fit=crop',
+  'https://images.pexels.com/photos/1545743/pexels-photo-1545743.jpeg?auto=compress&cs=tinysrgb&w=640&h=360&fit=crop',
+];
+
+/** Bukti merokok: merokok di dalam kendaraan / kabin sopir */
+const EVIDENCE_SMOKING = [
+  'https://images.pexels.com/photos/3354274/pexels-photo-3354274.jpeg?auto=compress&cs=tinysrgb&w=640&h=360&fit=crop',
+  'https://images.pexels.com/photos/1250927/pexels-photo-1250927.jpeg?auto=compress&cs=tinysrgb&w=640&h=360&fit=crop',
+  'https://images.pexels.com/photos/3354274/pexels-photo-3354274.jpeg?auto=compress&cs=tinysrgb&w=640&h=360&fit=crop&crop=entropy',
+  'https://images.pexels.com/photos/1611772/pexels-photo-1611772.jpeg?auto=compress&cs=tinysrgb&w=640&h=360&fit=crop',
+];
+
+export const drivers = [
+  {
+    id: 'DRV-001',
+    name: 'Budi Santoso',
+    photoUrl: DRIVER_PHOTOS.budi,
+    vehiclePlate: 'B 1234 XYZ',
+  },
+  {
+    id: 'DRV-002',
+    name: 'Andi Wijaya',
+    photoUrl: DRIVER_PHOTOS.andi,
+    vehiclePlate: 'B 5678 ABC',
+  },
+  {
+    id: 'DRV-003',
+    name: 'Rina Kusuma',
+    photoUrl: DRIVER_PHOTOS.rina,
+    vehiclePlate: 'B 9012 DEF',
+  },
+  {
+    id: 'DRV-004',
+    name: 'Dedi Pratama',
+    photoUrl: DRIVER_PHOTOS.dedi,
+    vehiclePlate: 'B 3456 GHI',
+  },
+  {
+    id: 'DRV-005',
+    name: 'Siti Rahayu',
+    photoUrl: DRIVER_PHOTOS.siti,
+    vehiclePlate: 'B 7890 JKL',
+  },
+  {
+    id: 'DRV-006',
+    name: 'Hendra Gunawan',
+    photoUrl: DRIVER_PHOTOS.hendra,
+    vehiclePlate: 'B 2468 MNO',
+  },
+];
+
+/** @type {import('../types/alerts').DriverAlert[]} */
+export const driverAlerts = [
+  {
+    id: 'ALT-001',
+    type: ALERT_TYPES.MICROSLEEP,
+    driverId: 'DRV-001',
+    driverName: 'Budi Santoso',
+    date: '2026-05-20',
+    time: '08:14:32',
+    location: '-6.526400, 107.442300',
+    evidenceUrl: EVIDENCE_MICROSLEEP[0],
+  },
+  {
+    id: 'ALT-002',
+    type: ALERT_TYPES.SMOKING,
+    driverId: 'DRV-001',
+    driverName: 'Budi Santoso',
+    date: '2026-05-19',
+    time: '15:22:10',
+    location: '-6.564400, 107.757800',
+    evidenceUrl: EVIDENCE_SMOKING[0],
+  },
+  {
+    id: 'ALT-003',
+    type: ALERT_TYPES.MICROSLEEP,
+    driverId: 'DRV-002',
+    driverName: 'Andi Wijaya',
+    date: '2026-05-21',
+    time: '06:45:18',
+    location: '-6.869400, 109.047200',
+    evidenceUrl: EVIDENCE_MICROSLEEP[1],
+  },
+  {
+    id: 'ALT-004',
+    type: ALERT_TYPES.SMOKING,
+    driverId: 'DRV-003',
+    driverName: 'Rina Kusuma',
+    date: '2026-05-18',
+    time: '11:03:55',
+    location: '-6.294400, 107.158900',
+    evidenceUrl: EVIDENCE_SMOKING[1],
+  },
+  {
+    id: 'ALT-005',
+    type: ALERT_TYPES.MICROSLEEP,
+    driverId: 'DRV-004',
+    driverName: 'Dedi Pratama',
+    date: '2026-05-17',
+    time: '19:38:02',
+    location: '-7.257500, 112.752100',
+    evidenceUrl: EVIDENCE_MICROSLEEP[2],
+  },
+  {
+    id: 'ALT-006',
+    type: ALERT_TYPES.SMOKING,
+    driverId: 'DRV-002',
+    driverName: 'Andi Wijaya',
+    date: '2026-05-16',
+    time: '13:17:44',
+    location: '-6.178300, 106.631900',
+    evidenceUrl: EVIDENCE_SMOKING[2],
+  },
+  {
+    id: 'ALT-007',
+    type: ALERT_TYPES.MICROSLEEP,
+    driverId: 'DRV-005',
+    driverName: 'Siti Rahayu',
+    date: '2026-05-15',
+    time: '04:52:29',
+    location: '-6.804800, 110.840700',
+    evidenceUrl: EVIDENCE_MICROSLEEP[3],
+  },
+  {
+    id: 'ALT-008',
+    type: ALERT_TYPES.SMOKING,
+    driverId: 'DRV-006',
+    driverName: 'Hendra Gunawan',
+    date: '2026-05-14',
+    time: '09:41:07',
+    location: '-6.284700, 107.056400',
+    evidenceUrl: EVIDENCE_SMOKING[3],
+  },
+  {
+    id: 'ALT-009',
+    type: ALERT_TYPES.MICROSLEEP,
+    driverId: 'DRV-003',
+    driverName: 'Rina Kusuma',
+    date: '2026-05-13',
+    time: '21:05:33',
+    location: '-7.175100, 110.473900',
+    evidenceUrl: EVIDENCE_MICROSLEEP[0],
+  },
+  {
+    id: 'ALT-010',
+    type: ALERT_TYPES.SMOKING,
+    driverId: 'DRV-004',
+    driverName: 'Dedi Pratama',
+    date: '2026-05-12',
+    time: '16:28:51',
+    location: '-7.389800, 112.728800',
+    evidenceUrl: EVIDENCE_SMOKING[0],
+  },
+  {
+    id: 'ALT-011',
+    type: ALERT_TYPES.MICROSLEEP,
+    driverId: 'DRV-001',
+    driverName: 'Budi Santoso',
+    date: '2026-05-11',
+    time: '07:33:16',
+    location: '-6.214600, 106.845100',
+    evidenceUrl: EVIDENCE_MICROSLEEP[1],
+  },
+  {
+    id: 'ALT-012',
+    type: ALERT_TYPES.SMOKING,
+    driverId: 'DRV-005',
+    driverName: 'Siti Rahayu',
+    date: '2026-05-10',
+    time: '12:55:40',
+    location: '-6.732400, 108.552600',
+    evidenceUrl: EVIDENCE_SMOKING[1],
+  },
+  {
+    id: 'ALT-013',
+    type: ALERT_TYPES.MICROSLEEP,
+    driverId: 'DRV-002',
+    driverName: 'Andi Wijaya',
+    date: '2026-04-08',
+    time: '05:12:00',
+    location: '-6.889700, 109.150000',
+    evidenceUrl: EVIDENCE_MICROSLEEP[2],
+  },
+  {
+    id: 'ALT-014',
+    type: ALERT_TYPES.SMOKING,
+    driverId: 'DRV-006',
+    driverName: 'Hendra Gunawan',
+    date: '2026-03-22',
+    time: '14:00:00',
+    location: '3.595200, 98.672200',
+    evidenceUrl: EVIDENCE_SMOKING[2],
+  },
+  {
+    id: 'ALT-015',
+    type: ALERT_TYPES.MICROSLEEP,
+    driverId: 'DRV-001',
+    driverName: 'Budi Santoso',
+    date: '2025-11-15',
+    time: '22:30:00',
+    location: '-6.402500, 107.354000',
+    evidenceUrl: EVIDENCE_MICROSLEEP[3],
+  },
+];
+
+/** Peringatan kejernihan solar — punya sopir, tanpa bukti foto */
+export const solarClarityAlerts = [
+  {
+    id: 'SOL-001',
+    type: ALERT_TYPES.SOLAR_CLARITY,
+    driverId: 'DRV-001',
+    driverName: 'Budi Santoso',
+    date: '2026-05-21',
+    time: '10:15:00',
+    location: '-6.175110, 106.865036',
+  },
+  {
+    id: 'SOL-002',
+    type: ALERT_TYPES.SOLAR_CLARITY,
+    driverId: 'DRV-002',
+    driverName: 'Andi Wijaya',
+    date: '2026-05-21',
+    time: '14:30:22',
+    location: '-6.238270, 106.975570',
+  },
+  {
+    id: 'SOL-003',
+    type: ALERT_TYPES.SOLAR_CLARITY,
+    driverId: 'DRV-003',
+    driverName: 'Rina Kusuma',
+    date: '2026-05-20',
+    time: '09:05:11',
+    location: '-6.294400, 107.158900',
+  },
+  {
+    id: 'SOL-004',
+    type: ALERT_TYPES.SOLAR_CLARITY,
+    driverId: 'DRV-004',
+    driverName: 'Dedi Pratama',
+    date: '2026-05-19',
+    time: '16:42:33',
+    location: '-7.389800, 112.728800',
+  },
+  {
+    id: 'SOL-005',
+    type: ALERT_TYPES.SOLAR_CLARITY,
+    driverId: 'DRV-005',
+    driverName: 'Siti Rahayu',
+    date: '2026-05-18',
+    time: '11:20:45',
+    location: '-6.966700, 110.420600',
+  },
+  {
+    id: 'SOL-006',
+    type: ALERT_TYPES.SOLAR_CLARITY,
+    driverId: 'DRV-006',
+    driverName: 'Hendra Gunawan',
+    date: '2026-05-17',
+    time: '08:00:02',
+    location: '-6.917464, 107.619125',
+  },
+  {
+    id: 'SOL-007',
+    type: ALERT_TYPES.SOLAR_CLARITY,
+    driverId: 'DRV-001',
+    driverName: 'Budi Santoso',
+    date: '2026-05-15',
+    time: '13:55:18',
+    location: '-7.795580, 110.369490',
+  },
+  {
+    id: 'SOL-008',
+    type: ALERT_TYPES.SOLAR_CLARITY,
+    driverId: 'DRV-003',
+    driverName: 'Rina Kusuma',
+    date: '2026-05-12',
+    time: '07:12:50',
+    location: '3.595200, 98.672200',
+  },
+  {
+    id: 'SOL-009',
+    type: ALERT_TYPES.SOLAR_CLARITY,
+    driverId: 'DRV-004',
+    driverName: 'Dedi Pratama',
+    date: '2026-04-02',
+    time: '09:00:00',
+    location: '-7.257500, 112.752100',
+  },
+  {
+    id: 'SOL-010',
+    type: ALERT_TYPES.SOLAR_CLARITY,
+    driverId: 'DRV-005',
+    driverName: 'Siti Rahayu',
+    date: '2025-12-01',
+    time: '11:00:00',
+    location: '-7.801194, 110.364917',
+  },
+];

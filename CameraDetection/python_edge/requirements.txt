@@ -1,0 +1,16 @@
+# Dependencies untuk Python Edge Device DMS
+# Driver Monitoring System - Object Detection & Face Detection
+
+# Object Detection dengan YOLOv8
+ultralytics>=8.0.0
+
+# Computer Vision & Image Processing (termasuk Haar Cascade untuk face detection)
+opencv-python>=4.8.0
+numpy>=1.24.0
+Pillow>=10.0.0
+
+# HTTP Requests
+requests>=2.31.0
+
+# Build tools (untuk beberapa dependencies)
+cmake>=3.20.0
